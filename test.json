@@ -1,0 +1,577 @@
+
+{
+    "id": "house-drafter-full-capability-test",
+    "dimension": 2,
+    "primitives": [
+        {
+            "type": "line",
+            "start": [0, 0],
+            "end": [12000, 0],
+            "color": "#FFFFFF",
+            "lineweight": 0.70
+        },
+        {
+            "type": "line",
+            "start": [12000, 0],
+            "end": [12000, 9000],
+            "color": "#FFFFFF",
+            "lineweight": 0.70
+        },
+        {
+            "type": "line",
+            "start": [12000, 9000],
+            "end": [0, 9000],
+            "color": "#FFFFFF",
+            "lineweight": 0.70
+        },
+        {
+            "type": "line",
+            "start": [0, 9000],
+            "end": [0, 0],
+            "color": "#FFFFFF",
+            "lineweight": 0.70
+        },
+
+        {
+            "type": "line",
+            "start": [4500, 0],
+            "end": [4500, 9000],
+            "color": "#00D4FF",
+            "lineweight": 0.50
+        },
+        {
+            "type": "line",
+            "start": [8000, 0],
+            "end": [8000, 9000],
+            "color": "#00D4FF",
+            "lineweight": 0.50
+        },
+        {
+            "type": "line",
+            "start": [4500, 3500],
+            "end": [8000, 3500],
+            "color": "#00D4FF",
+            "lineweight": 0.50
+        },
+        {
+            "type": "line",
+            "start": [8000, 5500],
+            "end": [12000, 5500],
+            "color": "#00D4FF",
+            "lineweight": 0.50
+        },
+
+        {
+            "type": "line",
+            "start": [1500, 0],
+            "end": [3000, 0],
+            "color": "#FFD166",
+            "lineweight": 0.25
+        },
+        {
+            "type": "line",
+            "start": [1500, -120],
+            "end": [3000, -120],
+            "color": "#FFD166",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [4500, 1100],
+            "end": [4500, 2100],
+            "color": "#FFD166",
+            "lineweight": 0.25
+        },
+        {
+            "type": "line",
+            "start": [4380, 1100],
+            "end": [4380, 2100],
+            "color": "#FFD166",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [9200, 9000],
+            "end": [10800, 9000],
+            "color": "#FFD166",
+            "lineweight": 0.25
+        },
+        {
+            "type": "line",
+            "start": [9200, 9120],
+            "end": [10800, 9120],
+            "color": "#FFD166",
+            "lineweight": 0.18
+        },
+
+        {
+            "type": "arc",
+            "center": [4500, 1100],
+            "radius": 1000,
+            "start_angle": 180,
+            "end_angle": 270,
+            "color": "#FFD166",
+            "lineweight": 0.18
+        },
+        {
+            "type": "arc",
+            "center": [8000, 3500],
+            "radius": 900,
+            "start_angle": 0,
+            "end_angle": 90,
+            "color": "#FFD166",
+            "lineweight": 0.18
+        },
+        {
+            "type": "arc",
+            "center": [8000, 5500],
+            "radius": 850,
+            "start_angle": 90,
+            "end_angle": 180,
+            "color": "#FFD166",
+            "lineweight": 0.18
+        },
+
+        {
+            "type": "polyline",
+            "points": [
+                [700, 650],
+                [3500, 650],
+                [3500, 2450],
+                [700, 2450],
+                [700, 650]
+            ],
+            "color": "#A78BFA",
+            "lineweight": 0.25
+        },
+        {
+            "type": "line",
+            "start": [2100, 650],
+            "end": [2100, 2450],
+            "color": "#A78BFA",
+            "lineweight": 0.18
+        },
+        {
+            "type": "circle",
+            "center": [2800, 1550],
+            "radius": 250,
+            "color": "#A78BFA",
+            "lineweight": 0.25
+        },
+        {
+            "type": "circle",
+            "center": [2800, 1550],
+            "radius": 80,
+            "color": "#A78BFA",
+            "lineweight": 0.18
+        },
+
+        {
+            "type": "polygon",
+            "points": [
+                [5200, 650],
+                [7300, 650],
+                [7300, 1800],
+                [6500, 2200],
+                [5200, 1800]
+            ],
+            "color": "#06D6A0",
+            "lineweight": 0.30
+        },
+        {
+            "type": "polyline",
+            "points": [
+                [5200, 2500],
+                [7300, 2500],
+                [7300, 3100]
+            ],
+            "color": "#06D6A0",
+            "lineweight": 0.18
+        },
+
+        {
+            "type": "circle",
+            "center": [10100, 1700],
+            "radius": 550,
+            "color": "#06D6A0",
+            "lineweight": 0.30
+        },
+        {
+            "type": "circle",
+            "center": [10100, 1700],
+            "radius": 350,
+            "color": "#06D6A0",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [9550, 1700],
+            "end": [10650, 1700],
+            "color": "#06D6A0",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [10100, 1150],
+            "end": [10100, 2250],
+            "color": "#06D6A0",
+            "lineweight": 0.18
+        },
+
+        {
+            "type": "circle",
+            "center": [9200, 7000],
+            "radius": 400,
+            "color": "#4CC9F0",
+            "lineweight": 0.25
+        },
+        {
+            "type": "polyline",
+            "points": [
+                [10000, 6200],
+                [11300, 6200],
+                [11300, 8200],
+                [10000, 8200],
+                [10000, 6200]
+            ],
+            "color": "#4CC9F0",
+            "lineweight": 0.25
+        },
+        {
+            "type": "line",
+            "start": [10000, 7200],
+            "end": [11300, 7200],
+            "color": "#4CC9F0",
+            "lineweight": 0.18
+        },
+
+        {
+            "type": "point",
+            "position": [0, 0],
+            "color": "#FF5D8F"
+        },
+        {
+            "type": "point",
+            "position": [12000, 9000],
+            "color": "#FF5D8F"
+        },
+        {
+            "type": "point",
+            "position": [6000, 4500],
+            "color": "#FF5D8F"
+        },
+        {
+            "type": "point",
+            "position": [13000, 9500],
+            "color": "#FF5D8F"
+        },
+
+        {
+            "type": "polyline",
+            "points": [
+                [-1500, 0],
+                [-1000, 500],
+                [-500, 0],
+                [0, 500],
+                [500, 0]
+            ],
+            "color": "#F4A261",
+            "lineweight": 0.35
+        },
+        {
+            "type": "polygon",
+            "points": [
+                [-1500, 2500],
+                [-500, 2500],
+                [0, 3500],
+                [-1000, 4000]
+            ],
+            "color": "#F4A261",
+            "lineweight": 0.35
+        },
+
+        {
+            "type": "arc",
+            "center": [14500, 1500],
+            "radius": 700,
+            "start_angle": 0,
+            "end_angle": 90,
+            "color": "#E9C46A",
+            "lineweight": 0.25
+        },
+        {
+            "type": "arc",
+            "center": [14500, 1500],
+            "radius": 1000,
+            "start_angle": 0,
+            "end_angle": 180,
+            "color": "#E9C46A",
+            "lineweight": 0.25
+        },
+        {
+            "type": "arc",
+            "center": [14500, 1500],
+            "radius": 1300,
+            "start_angle": 25,
+            "end_angle": 315,
+            "color": "#E9C46A",
+            "lineweight": 0.25
+        },
+
+        {
+            "type": "line",
+            "start": [14000, 4000],
+            "end": [18000, 4000],
+            "color": "#FFFFFF",
+            "lineweight": 0.13
+        },
+        {
+            "type": "line",
+            "start": [14000, 4300],
+            "end": [18000, 4300],
+            "color": "#FFFFFF",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [14000, 4600],
+            "end": [18000, 4600],
+            "color": "#FFFFFF",
+            "lineweight": 0.25
+        },
+        {
+            "type": "line",
+            "start": [14000, 4900],
+            "end": [18000, 4900],
+            "color": "#FFFFFF",
+            "lineweight": 0.35
+        },
+        {
+            "type": "line",
+            "start": [14000, 5200],
+            "end": [18000, 5200],
+            "color": "#FFFFFF",
+            "lineweight": 0.50
+        },
+        {
+            "type": "line",
+            "start": [14000, 5500],
+            "end": [18000, 5500],
+            "color": "#FFFFFF",
+            "lineweight": 0.70
+        },
+        {
+            "type": "line",
+            "start": [14000, 5800],
+            "end": [18000, 5800],
+            "color": "#FFFFFF",
+            "lineweight": 1.00
+        },
+        {
+            "type": "line",
+            "start": [14000, 6100],
+            "end": [18000, 6100],
+            "color": "#FFFFFF",
+            "lineweight": 2.00
+        },
+
+        {
+            "type": "text",
+            "position": [6000, 8200],
+            "text": "LIVING / DINING",
+            "height": 320,
+            "color": "#FFFFFF"
+        },
+        {
+            "type": "text",
+            "position": [2200, 5000],
+            "text": "BEDROOM 01",
+            "height": 300,
+            "color": "#FFFFFF",
+            "alignment": "center"
+        },
+        {
+            "type": "text",
+            "position": [10000, 4200],
+            "text": "BEDROOM 02",
+            "height": 280,
+            "color": "#FFFFFF",
+            "alignment": "center"
+        },
+        {
+            "type": "text",
+            "position": [10000, 8500],
+            "text": "BATHROOM",
+            "height": 220,
+            "color": "#FFFFFF",
+            "alignment": "center"
+        },
+        {
+            "type": "text",
+            "position": [15000, 7000],
+            "text": "LINEWEIGHT TEST",
+            "height": 250,
+            "color": "#FFFFFF"
+        },
+        {
+            "type": "text",
+            "position": [15000, 6600],
+            "text": "0.13 / 0.18 / 0.25 / 0.35 / 0.50 / 0.70 / 1.00 / 2.00 mm",
+            "height": 140,
+            "color": "#FFFFFF"
+        },
+        {
+            "type": "text",
+            "position": [15000, 3000],
+            "text": "ROTATED TEXT 45 DEG",
+            "height": 220,
+            "color": "#06D6A0",
+            "rotation": 45
+        },
+        {
+            "type": "text",
+            "position": [15000, 2500],
+            "text": "RIGHT ALIGNED",
+            "height": 220,
+            "color": "#FFD166",
+            "alignment": "right"
+        },
+        {
+            "type": "text",
+            "position": [15000, 2100],
+            "text": "CENTER ALIGNED",
+            "height": 220,
+            "color": "#4CC9F0",
+            "alignment": "center"
+        },
+
+        {
+            "type": "line",
+            "start": [0, -1000],
+            "end": [12000, -1000],
+            "color": "#A0A0A0",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [0, -1300],
+            "end": [0, -700],
+            "color": "#A0A0A0",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [12000, -1300],
+            "end": [12000, -700],
+            "color": "#A0A0A0",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [0, -1150],
+            "end": [150, -850],
+            "color": "#A0A0A0",
+            "lineweight": 0.25
+        },
+        {
+            "type": "line",
+            "start": [12000, -1150],
+            "end": [12150, -850],
+            "color": "#A0A0A0",
+            "lineweight": 0.25
+        },
+        {
+            "type": "text",
+            "position": [6000, -850],
+            "text": "12000",
+            "height": 220,
+            "color": "#A0A0A0",
+            "alignment": "center"
+        },
+
+        {
+            "type": "line",
+            "start": [-2000, -2200],
+            "end": [18000, -2200],
+            "color": "#FFFFFF",
+            "lineweight": 0.35
+        },
+        {
+            "type": "line",
+            "start": [-2000, -2200],
+            "end": [-2000, -4200],
+            "color": "#FFFFFF",
+            "lineweight": 0.35
+        },
+        {
+            "type": "line",
+            "start": [18000, -2200],
+            "end": [18000, -4200],
+            "color": "#FFFFFF",
+            "lineweight": 0.35
+        },
+        {
+            "type": "line",
+            "start": [-2000, -4200],
+            "end": [18000, -4200],
+            "color": "#FFFFFF",
+            "lineweight": 0.35
+        },
+        {
+            "type": "line",
+            "start": [9000, -2200],
+            "end": [9000, -4200],
+            "color": "#FFFFFF",
+            "lineweight": 0.18
+        },
+        {
+            "type": "line",
+            "start": [14000, -2200],
+            "end": [14000, -4200],
+            "color": "#FFFFFF",
+            "lineweight": 0.18
+        },
+        {
+            "type": "text",
+            "position": [-1500, -2900],
+            "text": "HOUSE DRAFTER - RENDERER CAPABILITY TEST",
+            "height": 300,
+            "color": "#FFFFFF"
+        },
+        {
+            "type": "text",
+            "position": [-1500, -3500],
+            "text": "2D GEOMETRY / TEXT / LINEWEIGHTS / COLOURS",
+            "height": 180,
+            "color": "#A0A0A0"
+        },
+        {
+            "type": "text",
+            "position": [9500, -2900],
+            "text": "SHEET: TEST-001",
+            "height": 220,
+            "color": "#FFFFFF"
+        },
+        {
+            "type": "text",
+            "position": [9500, -3500],
+            "text": "UNITS: DRAWING UNITS",
+            "height": 180,
+            "color": "#A0A0A0"
+        },
+        {
+            "type": "text",
+            "position": [14500, -2900],
+            "text": "REV: 01",
+            "height": 220,
+            "color": "#FFFFFF"
+        },
+        {
+            "type": "text",
+            "position": [14500, -3500],
+            "text": "STATUS: TEST DATA",
+            "height": 180,
+            "color": "#A0A0A0"
+        }
+    ]
+}
