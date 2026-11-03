@@ -1,10 +1,27 @@
-
+import math
 import json
 import os
 import tkinter as tk
 from tkinter import ttk, messagebox
 from Commands import Validate
 from PIL import Image, ImageTk, ImageDraw, ImageFont
+
+# -----------------------------------------
+# DISPLAY SETTINGS
+# -----------------------------------------
+
+GRID_VISIBLE = True
+_ACTIVE_REDRAW = None
+
+def setGridVisible(visible):
+
+    global GRID_VISIBLE
+
+    GRID_VISIBLE = bool(visible)
+
+    # Immediately redraw the active preview.
+    if _ACTIVE_REDRAW is not None:
+        _ACTIVE_REDRAW()
 
 # ---------------------------------------------------------
 # PANE MANAGEMENT
@@ -141,6 +158,7 @@ def previewJSON(path, shape_pane, preview_pane):
         {
             "id": "unique-id",
             "dimension": 2,
+            "units": "mm",
             "primitives": [
                 {
                     "type": "line",
@@ -335,21 +353,21 @@ def previewImage(path, preview_pane):
 # ---------------------------------------------------------
 
 
+
 def previewDrawing(data, preview_pane):
     """
-    Render a valid 2D drafting structure.
+    Optimized 2D drawing renderer.
 
     Features:
-        - 3x supersampling anti-aliasing
-        - LANCZOS downsampling
-        - Automatic fit-to-view
-        - Mouse-wheel zoom
+        - Cached drawing bounds
+        - Cached fonts
+        - 1x interactive rendering
+        - 3x final-quality rendering
+        - Debounced redraws
         - Cursor-centred zoom
         - Middle/right mouse drag to pan
+        - Reused Canvas image item
         - Automatic redraw when resized
-
-    Supported primitives:
-        point, line, polyline, polygon, circle, arc
     """
 
     canvas = tk.Canvas(
@@ -364,16 +382,32 @@ def previewDrawing(data, preview_pane):
     preview_pane.canvas = canvas
     preview_pane.drawing_data = data
 
-    # -----------------------------------------
+    # -------------------------------------------------
+    # DRAWING UNITS
+    # -------------------------------------------------
+
+    units = data.get("units")
+
+    if units != "mm":
+        raise ValueError(
+            "Unsupported drawing units. "
+            "The renderer currently supports millimetres (mm) only."
+        )
+
+    primitives = data["primitives"]
+
+    # -------------------------------------------------
     # VIEW SETTINGS
-    # -----------------------------------------
+    # -------------------------------------------------
 
     view = {
         "zoom": 1.0,
         "pan_x": 0.0,
         "pan_y": 0.0,
         "drag_x": 0.0,
-        "drag_y": 0.0
+        "drag_y": 0.0,
+        "cursor_x": None,
+        "cursor_y": None
     }
 
     MIN_ZOOM = 0.1
@@ -382,34 +416,119 @@ def previewDrawing(data, preview_pane):
     ZOOM_FACTOR = 1.1
     ZOOM_FACTOR_FAST = 1.25
 
-    # Anti-aliasing quality.
-    SUPERSAMPLE = 3
+    INTERACTIVE_QUALITY = 1
+    FINAL_QUALITY = 3
 
-    # -----------------------------------------
-    # LINEWEIGHT
-    # -----------------------------------------
+    # -------------------------------------------------
+    # RENDER STATE
+    # -------------------------------------------------
 
-    def getLineWidth(primitive):
-        """
-        Convert drafting lineweight in millimetres
-        into screen pixels.
+    render_state = {
+        "image_item": None,
+        "photo": None,
+        "preview_job": None,
+        "final_job": None,
+        "last_size": None
+    }
 
-        Defaults to 0.35 mm.
-        """
+    font_cache = {}
 
-        lineweight = primitive.get("lineweight", 0.35)
+    # -------------------------------------------------
+    # PRECOMPUTE DRAWING BOUNDS
+    # -------------------------------------------------
 
-        pixels = lineweight * 96 / 25.4
+    bounds_points = []
 
-        return max(1, round(pixels))
+    for primitive in primitives:
 
-    # -----------------------------------------
-    # RENDERING
-    # -----------------------------------------
+        kind = primitive["type"]
 
-    def render(event=None):
+        if kind == "point":
+            bounds_points.append(primitive["position"])
 
-        canvas.delete("all")
+        elif kind == "line":
+            bounds_points.extend([
+                primitive["start"],
+                primitive["end"]
+            ])
+
+        elif kind in ("polyline", "polygon"):
+            bounds_points.extend(primitive["points"])
+
+        elif kind in ("circle", "arc"):
+
+            cx, cy = primitive["center"]
+            radius = primitive["radius"]
+
+            bounds_points.extend([
+                [cx - radius, cy - radius],
+                [cx + radius, cy + radius]
+            ])
+
+        elif kind == "text":
+            bounds_points.append(primitive["position"])
+
+    if bounds_points:
+
+        min_x = min(point[0] for point in bounds_points)
+        max_x = max(point[0] for point in bounds_points)
+
+        min_y = min(point[1] for point in bounds_points)
+        max_y = max(point[1] for point in bounds_points)
+
+    else:
+        min_x = max_x = 0
+        min_y = max_y = 0
+
+    drawing_width = max(max_x - min_x, 1)
+    drawing_height = max(max_y - min_y, 1)
+
+    # -------------------------------------------------
+    # STATUS READOUT
+    # -------------------------------------------------
+
+    MARGIN = 30
+
+    def get_grid_spacing(scale):
+
+        target_spacing = 36 / scale
+
+        magnitude = 10 ** math.floor(
+            math.log10(target_spacing)
+        )
+
+        normalized = target_spacing / magnitude
+
+        if normalized <= 1:
+            return magnitude
+
+        elif normalized <= 2:
+            return 2 * magnitude
+
+        elif normalized <= 5:
+            return 5 * magnitude
+
+        else:
+            return 10 * magnitude
+
+    # Background and text are separate Canvas objects
+    # so the readout remains legible over the drawing.
+
+    readout_bg = canvas.create_rectangle(
+        0, 0, 0, 0,
+        fill="white",
+        outline="#CCCCCC",
+        width=1
+    )
+
+    readout_text = canvas.create_text(
+        0, 0,
+        anchor="sw",
+        fill="#333333",
+        font=("Consolas", 9)
+    )
+
+    def update_readout():
 
         width = canvas.winfo_width()
         height = canvas.winfo_height()
@@ -417,44 +536,155 @@ def previewDrawing(data, preview_pane):
         if width <= 1 or height <= 1:
             return
 
-        primitives = data["primitives"]
-        points = []
+        if not bounds_points:
 
-        # Gather coordinates for drawing bounds.
-        for primitive in primitives:
+            text = "Grid: N/A   X: N/A   Y: N/A"
 
-            kind = primitive["type"]
+        else:
 
-            if kind == "point":
-                points.append(primitive["position"])
+            base_scale = min(
+                (width - MARGIN * 2) / drawing_width,
+                (height - MARGIN * 2) / drawing_height
+            )
 
-            elif kind == "line":
-                points.extend([
-                    primitive["start"],
-                    primitive["end"]
-                ])
+            scale = base_scale * view["zoom"]
 
-            elif kind in ("polyline", "polygon"):
-                points.extend(primitive["points"])
+            grid_spacing = get_grid_spacing(scale)
 
-            elif kind in ("circle", "arc"):
+            if view["cursor_x"] is None:
 
-                cx, cy = primitive["center"]
-                radius = primitive["radius"]
+                cursor_text = "X: --   Y: --"
 
-                points.extend([
-                    [cx - radius, cy - radius],
-                    [cx + radius, cy + radius]
-                ])
+            else:
 
-            elif kind == "text":
-                points.append(primitive["position"])
+                world_x = (
+                    min_x
+                    + (
+                        view["cursor_x"]
+                        - MARGIN
+                        - view["pan_x"]
+                    ) / scale
+                )
 
-        # -------------------------------------
-        # CREATE HIGH-RESOLUTION IMAGE
-        # -------------------------------------
+                world_y = (
+                    min_y
+                    + (
+                        height
+                        - MARGIN
+                        + view["pan_y"]
+                        - view["cursor_y"]
+                    ) / scale
+                )
 
-        S = SUPERSAMPLE
+                cursor_text = (
+                    f"X: {world_x:,.2f} {units}   "
+                    f"Y: {world_y:,.2f} {units}"
+                )
+
+            text = (
+                f"Grid: {grid_spacing:g} {units}   "
+                f"{cursor_text}"
+            )
+
+        canvas.itemconfigure(
+            readout_text,
+            text=text
+        )
+
+        # Position the readout in the bottom-left corner.
+        canvas.coords(
+            readout_text,
+            10,
+            height - 10
+        )
+
+        # Fit the background around the text.
+        bbox = canvas.bbox(readout_text)
+
+        if bbox:
+
+            padding = 5
+
+            canvas.coords(
+                readout_bg,
+                bbox[0] - padding,
+                bbox[1] - padding,
+                bbox[2] + padding,
+                bbox[3] + padding
+            )
+
+        # Keep the readout above the rendered drawing.
+        canvas.tag_raise(readout_bg)
+        canvas.tag_raise(readout_text)
+
+    # -------------------------------------------------
+    # FONT CACHE
+    # -------------------------------------------------
+
+    def getFont(size):
+
+        size = max(1, int(size))
+
+        if size in font_cache:
+            return font_cache[size]
+
+        try:
+            font = ImageFont.truetype(
+                "arial.ttf",
+                size
+            )
+
+        except OSError:
+
+            try:
+                font = ImageFont.truetype(
+                    "DejaVuSans.ttf",
+                    size
+                )
+
+            except OSError:
+                font = ImageFont.load_default()
+
+        # Keep the cache bounded.
+        if len(font_cache) >= 128:
+            oldest_key = next(iter(font_cache))
+            del font_cache[oldest_key]
+
+        font_cache[size] = font
+
+        return font
+
+    # -------------------------------------------------
+    # LINEWEIGHT
+    # -------------------------------------------------
+
+    def getLineWidth(primitive, quality, scale):
+        """
+        Calculate line thickness.
+
+        Lineweight is expressed in millimetres and scales
+        proportionally with the drawing's zoom level.
+        """
+
+        lineweight = primitive.get("lineweight", 0.35)
+
+        pixels = lineweight * scale * quality
+
+        return max(1, round(pixels))
+
+    # -------------------------------------------------
+    # RENDER
+    # -------------------------------------------------
+
+    def render(quality=FINAL_QUALITY):
+
+        width = canvas.winfo_width()
+        height = canvas.winfo_height()
+
+        if width <= 1 or height <= 1:
+            return
+
+        S = quality
 
         image = Image.new(
             "RGB",
@@ -464,7 +694,7 @@ def previewDrawing(data, preview_pane):
 
         draw = ImageDraw.Draw(image)
 
-        if not points:
+        if not bounds_points:
 
             draw.text(
                 (width * S / 2, height * S / 2),
@@ -475,15 +705,6 @@ def previewDrawing(data, preview_pane):
 
         else:
 
-            min_x = min(point[0] for point in points)
-            max_x = max(point[0] for point in points)
-
-            min_y = min(point[1] for point in points)
-            max_y = max(point[1] for point in points)
-
-            drawing_width = max(max_x - min_x, 1)
-            drawing_height = max(max_y - min_y, 1)
-
             margin = 30
 
             base_scale = min(
@@ -493,9 +714,9 @@ def previewDrawing(data, preview_pane):
 
             scale = base_scale * view["zoom"]
 
-            # ---------------------------------
+            # -----------------------------------------
             # COORDINATE TRANSFORMATION
-            # ---------------------------------
+            # -----------------------------------------
 
             def transform(point):
 
@@ -519,26 +740,260 @@ def previewDrawing(data, preview_pane):
                     screen_y * S
                 )
 
-            # ---------------------------------
+
+            # -----------------------------------------
+            # BACKGROUND GRID
+            # -----------------------------------------
+
+            def draw_grid():
+
+                grid_spacing = get_grid_spacing(scale)
+
+                # Determine visible drawing coordinates.
+                left = min_x + (-margin - view["pan_x"]) / scale
+                right = min_x + (width - margin - view["pan_x"]) / scale
+
+                bottom = min_y + (view["pan_y"] - margin) / scale
+                top = min_y + (height - margin + view["pan_y"]) / scale
+
+                # Grid index ranges.
+                first_x = math.floor(left / grid_spacing)
+                last_x = math.ceil(right / grid_spacing)
+
+                first_y = math.floor(bottom / grid_spacing)
+                last_y = math.ceil(top / grid_spacing)
+
+                # Grid line appearance.
+                minor_color = "#EEEEEE"
+                major_color = "#DCDCDC"
+
+                grid_width = 1 * S
+
+                # Vertical grid lines.
+                for index in range(first_x, last_x + 1):
+
+                    x = index * grid_spacing
+
+                    screen_x, _ = transform((x, 0))
+
+                    # Align to the supersampling pixel grid.
+                    screen_x = round(screen_x / S) * S
+
+                    is_major = index % 5 == 0
+
+                    draw.line(
+                        (
+                            screen_x,
+                            0,
+                            screen_x,
+                            height * S
+                        ),
+                        fill=major_color if is_major else minor_color,
+                        width=grid_width
+                    )
+
+                # Horizontal grid lines.
+                for index in range(first_y, last_y + 1):
+
+                    y = index * grid_spacing
+
+                    _, screen_y = transform((0, y))
+
+                    # Align to the supersampling pixel grid.
+                    screen_y = round(screen_y / S) * S
+
+                    is_major = index % 5 == 0
+
+                    draw.line(
+                        (
+                            0,
+                            screen_y,
+                            width * S,
+                            screen_y
+                        ),
+                        fill=major_color if is_major else minor_color,
+                        width=grid_width
+                    )
+
+            # -----------------------------------------
+            # VIEWPORT CULLING
+            # -----------------------------------------
+
+            def is_visible(primitive):
+
+                kind = primitive["type"]
+
+                padding = 10 * S
+
+                # POINT
+                if kind == "point":
+
+                    x, y = transform(
+                        primitive["position"]
+                    )
+
+                    radius = (
+                        primitive.get("size", 2.0)
+                        * scale * S / 2
+                    )
+
+                    padding = max(
+                        padding,
+                        radius
+                    )
+
+                    return (
+                        -padding <= x <= width * S + padding
+                        and
+                        -padding <= y <= height * S + padding
+                    )
+
+                # LINE
+                elif kind == "line":
+
+                    coordinates = [
+                        transform(primitive["start"]),
+                        transform(primitive["end"])
+                    ]
+
+                # POLYLINE / POLYGON
+                elif kind in ("polyline", "polygon"):
+
+                    coordinates = [
+                        transform(point)
+                        for point in primitive["points"]
+                    ]
+
+                    if not coordinates:
+                        return False
+
+                # CIRCLE / ARC
+                elif kind in ("circle", "arc"):
+
+                    cx, cy = transform(
+                        primitive["center"]
+                    )
+
+                    radius = (
+                        primitive["radius"] * scale * S
+                    )
+
+                    coordinates = [
+                        (cx - radius, cy - radius),
+                        (cx + radius, cy + radius)
+                    ]
+
+                # TEXT
+                elif kind == "text":
+
+                    x, y = transform(
+                        primitive["position"]
+                    )
+
+                    font_size = max(
+                        1,
+                        round(
+                            primitive.get("height", 3.5)
+                            * scale * S
+                        )
+                    )
+
+                    font = getFont(font_size)
+
+                    bbox = font.getbbox(
+                        primitive["text"]
+                    )
+
+                    text_width = max(
+                        1,
+                        bbox[2] - bbox[0]
+                    )
+
+                    text_height = max(
+                        1,
+                        bbox[3] - bbox[1]
+                    )
+
+                    # Conservative allowance for text extent
+                    # and rotation around its centre.
+                    text_padding = (
+                        max(text_width, text_height) * 2
+                        + padding
+                    )
+
+                    return (
+                        -text_padding <= x <= width * S + text_padding
+                        and
+                        -text_padding <= y <= height * S + text_padding
+                    )
+
+                else:
+                    return False
+
+                min_x_screen = min(
+                    point[0] for point in coordinates
+                )
+
+                max_x_screen = max(
+                    point[0] for point in coordinates
+                )
+
+                min_y_screen = min(
+                    point[1] for point in coordinates
+                )
+
+                max_y_screen = max(
+                    point[1] for point in coordinates
+                )
+
+                return not (
+                    max_x_screen < -padding
+                    or min_x_screen > width * S + padding
+                    or max_y_screen < -padding
+                    or min_y_screen > height * S + padding
+                )
+
+            # -------------------------------------
+            # DRAW GRID (TEMPORARY DIAGNOSTIC)
+            # -------------------------------------
+
+            if GRID_VISIBLE:
+                draw_grid()
+
+            # -----------------------------------------
             # DRAW PRIMITIVES
-            # ---------------------------------
+            # -----------------------------------------
 
             for primitive in primitives:
+
+                if not is_visible(primitive):
+                    continue
 
                 kind = primitive["type"]
                 color = primitive["color"]
 
-                line_width = max(
-                    1,
-                    getLineWidth(primitive) * S
+                line_width = getLineWidth(
+                    primitive,
+                    S,
+                    scale
                 )
 
                 # POINT
                 if kind == "point":
 
-                    x, y = transform(primitive["position"])
+                    x, y = transform(
+                        primitive["position"]
+                    )
 
-                    radius = 3 * S
+                    point_size = primitive.get(
+                        "size",
+                        2.0
+                    )
+
+                    radius = max(
+                        0.5,
+                        point_size * scale * S / 2
+                    )
 
                     draw.ellipse(
                         (
@@ -554,8 +1009,13 @@ def previewDrawing(data, preview_pane):
                 # LINE
                 elif kind == "line":
 
-                    p1 = transform(primitive["start"])
-                    p2 = transform(primitive["end"])
+                    p1 = transform(
+                        primitive["start"]
+                    )
+
+                    p2 = transform(
+                        primitive["end"]
+                    )
 
                     draw.line(
                         [p1, p2],
@@ -572,20 +1032,25 @@ def previewDrawing(data, preview_pane):
                     ]
 
                     if kind == "polygon":
+                        coordinates.append(
+                            coordinates[0]
+                        )
 
-                        coordinates.append(coordinates[0])
+                    if len(coordinates) >= 2:
 
-                    draw.line(
-                        coordinates,
-                        fill=color,
-                        width=line_width,
-                        joint="curve"
-                    )
+                        draw.line(
+                            coordinates,
+                            fill=color,
+                            width=line_width,
+                            joint="curve"
+                        )
 
                 # CIRCLE
                 elif kind == "circle":
 
-                    cx, cy = transform(primitive["center"])
+                    cx, cy = transform(
+                        primitive["center"]
+                    )
 
                     radius = (
                         primitive["radius"] * scale * S
@@ -605,7 +1070,9 @@ def previewDrawing(data, preview_pane):
                 # ARC
                 elif kind == "arc":
 
-                    cx, cy = transform(primitive["center"])
+                    cx, cy = transform(
+                        primitive["center"]
+                    )
 
                     radius = (
                         primitive["radius"] * scale * S
@@ -614,8 +1081,6 @@ def previewDrawing(data, preview_pane):
                     start = primitive["start_angle"]
                     end = primitive["end_angle"]
 
-                    # Convert mathematical angles to
-                    # Pillow's screen-coordinate angles.
                     draw.arc(
                         (
                             cx - radius,
@@ -634,10 +1099,10 @@ def previewDrawing(data, preview_pane):
 
                     text = primitive["text"]
 
-                    x, y = transform(primitive["position"])
+                    x, y = transform(
+                        primitive["position"]
+                    )
 
-                    # Convert drawing-unit text height
-                    # into high-resolution screen pixels.
                     font_size = max(
                         1,
                         round(
@@ -646,30 +1111,23 @@ def previewDrawing(data, preview_pane):
                         )
                     )
 
-                    # Load a scalable font.
-                    try:
-                        font = ImageFont.truetype(
-                            "arial.ttf",
-                            font_size
-                        )
-                    except OSError:
-                        try:
-                            font = ImageFont.truetype(
-                                "DejaVuSans.ttf",
-                                font_size
-                            )
-                        except OSError:
-                            font = ImageFont.load_default()
+                    font = getFont(font_size)
 
-                    # Measure the text.
                     bbox = font.getbbox(text)
 
-                    text_width = max(1, bbox[2] - bbox[0])
-                    text_height = max(1, bbox[3] - bbox[1])
+                    text_width = max(
+                        1,
+                        bbox[2] - bbox[0]
+                    )
 
-                    # Alignment.
+                    text_height = max(
+                        1,
+                        bbox[3] - bbox[1]
+                    )
+
                     alignment = primitive.get(
-                        "alignment", "left"
+                        "alignment",
+                        "left"
                     )
 
                     if alignment == "center":
@@ -681,8 +1139,11 @@ def previewDrawing(data, preview_pane):
                     else:
                         offset_x = 0
 
-                    # Create a transparent layer.
-                    padding = max(text_width, text_height) + 4
+                    # ---------------------------------
+                    # TIGHT TEXT LAYER
+                    # ---------------------------------
+
+                    padding = 4
 
                     text_layer = Image.new(
                         "RGBA",
@@ -693,62 +1154,148 @@ def previewDrawing(data, preview_pane):
                         (0, 0, 0, 0)
                     )
 
-                    text_draw = ImageDraw.Draw(text_layer)
+                    text_draw = ImageDraw.Draw(
+                        text_layer
+                    )
 
                     text_draw.text(
                         (
-                            padding + offset_x - bbox[0],
-                            padding - text_height / 2 - bbox[1]
+                            padding - bbox[0],
+                            padding - bbox[1]
                         ),
                         text,
                         font=font,
                         fill=color
                     )
 
-                    # Rotate around the insertion position.
-                    rotation = primitive.get("rotation", 0)
+                    # ---------------------------------
+                    # POSITION TEXT
+                    # ---------------------------------
+
+                    center_x = (
+                        x
+                        + offset_x
+                        + text_width / 2
+                    )
+
+                    center_y = y
+
+                    rotation = primitive.get(
+                        "rotation",
+                        0
+                    )
 
                     if rotation != 0:
+
                         text_layer = text_layer.rotate(
                             rotation,
                             resample=Image.Resampling.BICUBIC,
-                            expand=False
+                            expand=True
                         )
 
-                    # Composite onto the drawing.
+                    # Preserve text centre during rotation.
+                    paste_x = round(
+                        center_x - text_layer.width / 2
+                    )
+
+                    paste_y = round(
+                        center_y - text_layer.height / 2
+                    )
+
                     image.paste(
                         text_layer,
-                        (
-                            round(x - padding),
-                            round(y - padding)
-                        ),
+                        (paste_x, paste_y),
                         text_layer
                     )
 
-        # -------------------------------------
-        # DOWNSAMPLE FOR ANTI-ALIASING
-        # -------------------------------------
+        # -----------------------------------------
+        # DOWNSAMPLE
+        # -----------------------------------------
 
-        image = image.resize(
-            (width, height),
-            Image.Resampling.LANCZOS
-        )
+        if S > 1:
+
+            image = image.resize(
+                (width, height),
+                Image.Resampling.LANCZOS
+            )
+
+        # -----------------------------------------
+        # UPDATE EXISTING CANVAS IMAGE
+        # -----------------------------------------
 
         photo = ImageTk.PhotoImage(image)
 
-        canvas.create_image(
-            0,
-            0,
-            image=photo,
-            anchor="nw"
-        )
+        if render_state["image_item"] is None:
 
-        # Prevent garbage collection.
+            render_state["image_item"] = canvas.create_image(
+                0,
+                0,
+                image=photo,
+                anchor="nw"
+            )
+
+        else:
+
+            canvas.itemconfig(
+                render_state["image_item"],
+                image=photo
+            )
+
+        render_state["photo"] = photo
+
         canvas.preview_image = photo
 
-    # -----------------------------------------
-    # ZOOM CONTROLS
-    # -----------------------------------------
+        update_readout()
+
+
+    # -------------------------------------------------
+    # SCHEDULED RENDERING
+    # -------------------------------------------------
+
+    def request_render():
+
+        # Schedule a quick preview if one isn't
+        # already waiting in the event queue.
+
+        if render_state["preview_job"] is None:
+
+            render_state["preview_job"] = canvas.after(
+                16,
+                render_interactive
+            )
+
+        # Reset the final-quality render timer.
+
+        if render_state["final_job"] is not None:
+
+            canvas.after_cancel(
+                render_state["final_job"]
+            )
+
+        render_state["final_job"] = canvas.after(
+            160,
+            render_final
+        )
+
+    global _ACTIVE_REDRAW
+
+    _ACTIVE_REDRAW = request_render
+
+    def render_interactive():
+
+        render_state["preview_job"] = None
+
+        render(INTERACTIVE_QUALITY)
+
+    def render_final():
+
+        render_state["final_job"] = None
+
+        render(FINAL_QUALITY)
+
+    # -------------------------------------------------
+    # ZOOM
+    # -------------------------------------------------
 
     def zoom_at(event, factor):
 
@@ -783,122 +1330,18 @@ def previewDrawing(data, preview_pane):
 
         view["zoom"] = new_zoom
 
-        render()
+        view["cursor_x"] = event.x
+        view["cursor_y"] = event.y
 
-    def mouse_wheel(event):
+        update_readout()
 
-        if event.delta > 0:
-            zoom_at(event, ZOOM_FACTOR)
-        else:
-            zoom_at(event, 1 / ZOOM_FACTOR)
-
-    def linux_zoom_in(event):
-        zoom_at(event, ZOOM_FACTOR)
-
-    def linux_zoom_out(event):
-        zoom_at(event, 1 / ZOOM_FACTOR)
-
-    # Windows / macOS.
-    canvas.bind("<MouseWheel>", mouse_wheel)
-
-    # Linux.
-    canvas.bind("<Button-4>", linux_zoom_in)
-    canvas.bind("<Button-5>", linux_zoom_out)
-
-    # -----------------------------------------
-    # PAN CONTROLS
-    # -----------------------------------------
-
-    def start_pan(event):
-
-        view["drag_x"] = event.x
-        view["drag_y"] = event.y
-
-    def drag_pan(event):
-
-        dx = event.x - view["drag_x"]
-        dy = event.y - view["drag_y"]
-
-        view["pan_x"] += dx
-        view["pan_y"] += dy
-
-        view["drag_x"] = event.x
-        view["drag_y"] = event.y
-
-        render()
-
-    # Middle mouse button.
-    canvas.bind("<ButtonPress-2>", start_pan)
-    canvas.bind("<B2-Motion>", drag_pan)
-
-    # Right mouse button.
-    canvas.bind("<ButtonPress-3>", start_pan)
-    canvas.bind("<B3-Motion>", drag_pan)
-
-    # Redraw when resized.
-    canvas.bind("<Configure>", render)
-
-    render()
-
-    # -----------------------------------------
-    # ZOOM CONTROLS
-    # -----------------------------------------
-
-    def zoom_at(event, factor):
-        """
-        Zoom towards or away from the cursor.
-
-        Preserves the exact drafting location beneath
-        the mouse cursor.
-        """
-
-        old_zoom = view["zoom"]
-
-        new_zoom = max(
-            MIN_ZOOM,
-            min(MAX_ZOOM, old_zoom * factor)
-        )
-
-        actual_factor = new_zoom / old_zoom
-
-        if actual_factor == 1:
-            return
-
-        # Match the coordinate origins used by transform().
-        margin = 30
-
-        origin_x = margin
-        origin_y = canvas.winfo_height() - margin
-
-        # Preserve the cursor's position relative to
-        # the actual drawing origin.
-        view["pan_x"] = (
-            event.x - origin_x
-            - (event.x - origin_x - view["pan_x"]) * actual_factor
-        )
-
-        view["pan_y"] = (
-            event.y - origin_y
-            - (event.y - origin_y - view["pan_y"]) * actual_factor
-        )
-
-        view["zoom"] = new_zoom
-
-        render()
+        request_render()
 
     def handle_zoom(event, direction):
-        """
-        Handle mouse-wheel zoom.
 
-        Normal scrolling:
-            Standard zoom speed.
-
-        Left mouse button held:
-            Faster zoom speed.
-        """
-
-        # Check whether the left mouse button is held.
-        left_button_held = bool(event.state & 0x0100)
+        left_button_held = bool(
+            event.state & 0x0100
+        )
 
         factor = (
             ZOOM_FACTOR_FAST
@@ -908,36 +1351,68 @@ def previewDrawing(data, preview_pane):
 
         if direction > 0:
             zoom_at(event, factor)
+
         else:
             zoom_at(event, 1 / factor)
 
     def mouse_wheel(event):
-        # Windows / macOS
-        handle_zoom(event, event.delta)
+
+        handle_zoom(
+            event,
+            event.delta
+        )
 
     def linux_zoom_in(event):
-        # Linux scroll up
+
         handle_zoom(event, 1)
 
-
     def linux_zoom_out(event):
-        # Linux scroll down
+
         handle_zoom(event, -1)
 
-    # Windows / macOS
-    canvas.bind("<MouseWheel>", mouse_wheel)
+    canvas.bind(
+        "<MouseWheel>",
+        mouse_wheel
+    )
 
-    # Linux
-    canvas.bind("<Button-4>", linux_zoom_in)
-    canvas.bind("<Button-5>", linux_zoom_out)
+    canvas.bind(
+        "<Button-4>",
+        linux_zoom_in
+    )
+
+    canvas.bind(
+        "<Button-5>",
+        linux_zoom_out
+    )
+
+    # -------------------------------------------------
+    # CURSOR COORDINATE TRACKING
+    # -------------------------------------------------
+
+    def track_cursor(event):
+
+        view["cursor_x"] = event.x
+        view["cursor_y"] = event.y
+
+        update_readout()
+
+    canvas.bind(
+        "<Motion>",
+        track_cursor
+    )
 
     # -----------------------------------------
     # PAN CONTROLS
     # -----------------------------------------
 
     def start_pan(event):
+
         view["drag_x"] = event.x
         view["drag_y"] = event.y
+
+        # Indicate that the drawing can be dragged.
+        canvas.configure(cursor="fleur")
+
 
     def drag_pan(event):
 
@@ -950,20 +1425,56 @@ def previewDrawing(data, preview_pane):
         view["drag_x"] = event.x
         view["drag_y"] = event.y
 
-        render()
+        view["cursor_x"] = event.x
+        view["cursor_y"] = event.y
 
-    # Middle mouse button.
-    canvas.bind("<ButtonPress-2>", start_pan)
-    canvas.bind("<B2-Motion>", drag_pan)
+        update_readout()
 
-    # Right mouse button.
-    canvas.bind("<ButtonPress-3>", start_pan)
-    canvas.bind("<B3-Motion>", drag_pan)
+        request_render()
 
-    # Redraw when resized.
-    canvas.bind("<Configure>", render)
 
-    render()
+    def stop_pan(event):
+
+        canvas.configure(cursor="")
+
+
+    # Left mouse button: Google Maps-style navigation.
+    canvas.bind("<ButtonPress-1>", start_pan)
+    canvas.bind("<B1-Motion>", drag_pan)
+    canvas.bind("<ButtonRelease-1>", stop_pan)
+
+
+    # -------------------------------------------------
+    # RESIZE
+    # -------------------------------------------------
+
+    def on_resize(event):
+
+        size = (
+            event.width,
+            event.height
+        )
+
+        if size == render_state["last_size"]:
+            return
+
+        render_state["last_size"] = size
+
+        request_render()
+
+    canvas.bind(
+        "<Configure>",
+        on_resize
+    )
+
+    # -------------------------------------------------
+    # INITIAL RENDER
+    # -------------------------------------------------
+
+    canvas.after(
+        50,
+        render_final
+    )
 
 # ---------------------------------------------------------
 # MAIN FILE PREVIEW ROUTER

@@ -1,4 +1,3 @@
-
 {
     "id": "house-drafter-full-capability-test",
     "dimension": 2,
@@ -7,28 +6,28 @@
             "type": "line",
             "start": [0, 0],
             "end": [12000, 0],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.70
         },
         {
             "type": "line",
             "start": [12000, 0],
             "end": [12000, 9000],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.70
         },
         {
             "type": "line",
             "start": [12000, 9000],
             "end": [0, 9000],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.70
         },
         {
             "type": "line",
             "start": [0, 9000],
             "end": [0, 0],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.70
         },
 
@@ -322,56 +321,56 @@
             "type": "line",
             "start": [14000, 4000],
             "end": [18000, 4000],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.13
         },
         {
             "type": "line",
             "start": [14000, 4300],
             "end": [18000, 4300],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.18
         },
         {
             "type": "line",
             "start": [14000, 4600],
             "end": [18000, 4600],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.25
         },
         {
             "type": "line",
             "start": [14000, 4900],
             "end": [18000, 4900],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.35
         },
         {
             "type": "line",
             "start": [14000, 5200],
             "end": [18000, 5200],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.50
         },
         {
             "type": "line",
             "start": [14000, 5500],
             "end": [18000, 5500],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.70
         },
         {
             "type": "line",
             "start": [14000, 5800],
             "end": [18000, 5800],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 1.00
         },
         {
             "type": "line",
             "start": [14000, 6100],
             "end": [18000, 6100],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 2.00
         },
 
@@ -380,14 +379,14 @@
             "position": [6000, 8200],
             "text": "LIVING / DINING",
             "height": 320,
-            "color": "#FFFFFF"
+            "color": "#364967"
         },
         {
             "type": "text",
             "position": [2200, 5000],
             "text": "BEDROOM 01",
             "height": 300,
-            "color": "#FFFFFF",
+            "color": "#364967",
             "alignment": "center"
         },
         {
@@ -395,7 +394,7 @@
             "position": [10000, 4200],
             "text": "BEDROOM 02",
             "height": 280,
-            "color": "#FFFFFF",
+            "color": "#364967",
             "alignment": "center"
         },
         {
@@ -403,7 +402,7 @@
             "position": [10000, 8500],
             "text": "BATHROOM",
             "height": 220,
-            "color": "#FFFFFF",
+            "color": "#364967",
             "alignment": "center"
         },
         {
@@ -411,14 +410,14 @@
             "position": [15000, 7000],
             "text": "LINEWEIGHT TEST",
             "height": 250,
-            "color": "#FFFFFF"
+            "color": "#364967"
         },
         {
             "type": "text",
             "position": [15000, 6600],
             "text": "0.13 / 0.18 / 0.25 / 0.35 / 0.50 / 0.70 / 1.00 / 2.00 mm",
             "height": 140,
-            "color": "#FFFFFF"
+            "color": "#364967"
         },
         {
             "type": "text",
@@ -493,42 +492,42 @@
             "type": "line",
             "start": [-2000, -2200],
             "end": [18000, -2200],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.35
         },
         {
             "type": "line",
             "start": [-2000, -2200],
             "end": [-2000, -4200],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.35
         },
         {
             "type": "line",
             "start": [18000, -2200],
             "end": [18000, -4200],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.35
         },
         {
             "type": "line",
             "start": [-2000, -4200],
             "end": [18000, -4200],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.35
         },
         {
             "type": "line",
             "start": [9000, -2200],
             "end": [9000, -4200],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.18
         },
         {
             "type": "line",
             "start": [14000, -2200],
             "end": [14000, -4200],
-            "color": "#FFFFFF",
+            "color": "#364967",
             "lineweight": 0.18
         },
         {
@@ -536,7 +535,7 @@
             "position": [-1500, -2900],
             "text": "HOUSE DRAFTER - RENDERER CAPABILITY TEST",
             "height": 300,
-            "color": "#FFFFFF"
+            "color": "#364967"
         },
         {
             "type": "text",
@@ -550,7 +549,7 @@
             "position": [9500, -2900],
             "text": "SHEET: TEST-001",
             "height": 220,
-            "color": "#FFFFFF"
+            "color": "#364967"
         },
         {
             "type": "text",
@@ -564,7 +563,7 @@
             "position": [14500, -2900],
             "text": "REV: 01",
             "height": 220,
-            "color": "#FFFFFF"
+            "color": "#364967"
         },
         {
             "type": "text",

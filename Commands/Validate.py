@@ -1,4 +1,6 @@
+
 import math
+
 
 def validate(obj):
     """
@@ -6,6 +8,9 @@ def validate(obj):
 
     Currently supports 2D objects and the following primitives:
         point, line, polyline, circle, arc, polygon, text.
+
+    All dimensional measurements must be expressed in millimetres (mm).
+    Angles must be expressed in degrees.
 
     Returns:
         (bool, list): Whether the object is valid and any errors found.
@@ -27,7 +32,7 @@ def validate(obj):
     if not isinstance(obj, dict):
         return False, ["Object must be a dictionary."]
 
-    required_keys = {"id", "dimension", "primitives"}
+    required_keys = {"id", "dimension", "units", "primitives"}
 
     missing_keys = required_keys - obj.keys()
     extra_keys = obj.keys() - required_keys
@@ -49,7 +54,11 @@ def validate(obj):
     if type(obj["dimension"]) is not int or obj["dimension"] != 2:
         errors.append("'dimension' must be the integer 2 for now.")
 
-    # 4. Validate the primitives list.
+    # 4. Validate units.
+    if obj["units"] != "mm":
+        errors.append("'units' must be 'mm' (millimetres) for now.")
+
+    # 5. Validate the primitives list.
     primitives = obj["primitives"]
 
     if not isinstance(primitives, list):
@@ -79,7 +88,7 @@ def validate(obj):
         except ValueError:
             return False
 
-    # 5. Primitive schemas.
+    # 6. Primitive schemas.
     primitive_schemas = {
         "point": {"position", "color"},
         "line": {"start", "end", "color"},
@@ -123,7 +132,7 @@ def validate(obj):
             )
             continue
 
-        # Validate optional lineweight.
+        # Validate optional lineweight (millimetres).
         if "lineweight" in primitive:
 
             lineweight = primitive["lineweight"]
@@ -176,17 +185,18 @@ def validate(obj):
                     "with finite numeric coordinates."
                 )
 
-        # Validate radius.
+        # Validate radius (millimetres).
         if primitive_type in {"circle", "arc"}:
 
             radius = primitive["radius"]
 
             if not valid_number(radius) or radius <= 0:
                 errors.append(
-                    f"{prefix}: 'radius' must be a positive finite number."
+                    f"{prefix}: 'radius' must be a positive finite number "
+                    "representing millimetres."
                 )
 
-        # Validate arc angles.
+        # Validate arc angles (degrees).
         if primitive_type == "arc":
 
             for key in ("start_angle", "end_angle"):
@@ -195,7 +205,8 @@ def validate(obj):
 
                 if not valid_number(angle):
                     errors.append(
-                        f"{prefix}: '{key}' must be a finite number."
+                        f"{prefix}: '{key}' must be a finite number "
+                        "representing degrees."
                     )
 
         # Validate text.
@@ -213,15 +224,16 @@ def validate(obj):
                     f"{prefix}: 'text' cannot be empty or whitespace-only."
                 )
 
-            # Text height.
+            # Text height (millimetres).
             height = primitive.get("height", 3.5)
 
             if not valid_number(height) or height <= 0:
                 errors.append(
-                    f"{prefix}: 'height' must be a positive finite number."
+                    f"{prefix}: 'height' must be a positive finite number "
+                    "representing millimetres."
                 )
 
-            # Text rotation.
+            # Text rotation (degrees).
             rotation = primitive.get("rotation", 0)
 
             if not valid_number(rotation):

@@ -1,4 +1,3 @@
-
 ######################################### Draft.py #########################################
 
 import sys
@@ -13,7 +12,6 @@ from Commands import Preview, Save, Export
 
 Shapes = {}
 CurrentFile = ""
-
 
 # ---------------------------------------------------------
 # APPLICATION WINDOW
@@ -57,7 +55,6 @@ file_tree.pack(
     padx=5,
     pady=5
 )
-
 
 # ---------------------------------------------------------
 # SHAPE LIST PANE
@@ -510,6 +507,27 @@ settings_menu.add_command(
 menubar.add_cascade(
     label="Settings",
     menu=settings_menu
+)
+
+# -----------------------------------------
+# GRID VISIBILITY SETTING
+# -----------------------------------------
+
+show_grid = tk.BooleanVar(
+    root,
+    value=True
+)
+
+def toggleGrid():
+
+    Preview.setGridVisible(
+        show_grid.get()
+    )
+
+settings_menu.add_checkbutton(
+    label="Show Grid",
+    variable=show_grid,
+    command=toggleGrid
 )
 
 # ---------------------------------------------------------
